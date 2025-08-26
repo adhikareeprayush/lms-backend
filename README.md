@@ -207,10 +207,6 @@ npm run format     # Format code with Prettier
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
 ## 🆘 Support
 
 If you have any questions or need help with setup, please:
