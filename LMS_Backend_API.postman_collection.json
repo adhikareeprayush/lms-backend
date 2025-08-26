@@ -1,0 +1,782 @@
+{
+  "info": {
+    "name": "LMS Backend API",
+    "description": "Complete API collection for the Learning Management System (LMS) Backend. This collection includes all endpoints for authentication, user management, course management, enrollments, and more.\n\n## Getting Started\n\n1. **Set Environment Variables**: Configure the base URL and authentication token\n2. **Authentication**: Start with the Authentication folder to register/login and get your JWT token\n3. **Set Token**: After login, copy the token and set it in the Authorization header for protected routes\n\n## Environment Variables\n\n- `base_url`: Your API base URL (e.g., http://localhost:5000)\n- `auth_token`: JWT token received after login\n\n## Authentication Flow\n\n1. Register a new user or login with existing credentials\n2. Copy the JWT token from the response\n3. Use the token in Authorization header as `Bearer {{auth_token}}`\n\n## Sample Credentials (after seeding)\n\n- **Admin**: admin@lms.com / Admin123!\n- **Instructor**: instructor@lms.com / Instructor123!\n- **Student**: student@lms.com / Student123!",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "12345678",
+    "_collection_link": "https://documenter.getpostman.com/view/12345678/lms-backend-api/1.0.0"
+  },
+  "item": [
+    {
+      "name": "Authentication",
+      "description": "User authentication endpoints including registration, login, profile management, and password operations.",
+      "item": [
+        {
+          "name": "Register User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"email\": \"john.doe@example.com\",\n  \"password\": \"SecurePass123!\",\n  \"role\": \"student\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "register"]
+            },
+            "description": "Register a new user account. Available roles: 'student', 'instructor'. Admin accounts must be created separately.\n\n**Required Fields:**\n- firstName: 2-50 characters\n- lastName: 2-50 characters\n- email: Valid email address\n- password: Minimum 6 characters with uppercase, lowercase, and number\n- role: 'student' or 'instructor'\n\n**Response:**\n- Returns JWT token and user profile\n- Token expires in 7 days (configurable)"
+          },
+          "response": [
+            {
+              "name": "Successful Registration",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"email\": \"john.doe@example.com\",\n  \"password\": \"SecurePass123!\",\n  \"role\": \"student\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/v1/auth/register",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "v1", "auth", "register"]
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"User registered successfully\",\n  \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\",\n  \"user\": {\n    \"_id\": \"507f1f77bcf86cd799439011\",\n    \"firstName\": \"John\",\n    \"lastName\": \"Doe\",\n    \"email\": \"john.doe@example.com\",\n    \"role\": \"student\",\n    \"isActive\": true,\n    \"isEmailVerified\": false,\n    \"createdAt\": \"2024-01-15T10:30:00.000Z\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Login User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"student@lms.com\",\n  \"password\": \"Student123!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "login"]
+            },
+            "description": "Authenticate user and receive JWT token.\n\n**Required Fields:**\n- email: User's email address\n- password: User's password\n\n**Response:**\n- JWT token for authentication\n- User profile information\n- Token should be used in Authorization header for protected routes"
+          },
+          "response": [
+            {
+              "name": "Successful Login",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"student@lms.com\",\n  \"password\": \"Student123!\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/v1/auth/login",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "v1", "auth", "login"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Login successful\",\n  \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\",\n  \"user\": {\n    \"_id\": \"507f1f77bcf86cd799439011\",\n    \"firstName\": \"Jane\",\n    \"lastName\": \"Student\",\n    \"email\": \"student@lms.com\",\n    \"role\": \"student\",\n    \"isActive\": true,\n    \"lastLogin\": \"2024-01-15T10:30:00.000Z\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Current User Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/me",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "me"]
+            },
+            "description": "Get the current authenticated user's profile information.\n\n**Authentication Required:**\n- Include JWT token in Authorization header\n\n**Response:**\n- Complete user profile\n- Enrolled courses (for students)\n- Created courses (for instructors)"
+          },
+          "response": []
+        },
+        {
+          "name": "Update User Profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Updated\",\n  \"bio\": \"Updated bio information\",\n  \"phoneNumber\": \"+1234567890\",\n  \"preferences\": {\n    \"notifications\": {\n      \"email\": true,\n      \"push\": false\n    },\n    \"language\": \"en\",\n    \"timezone\": \"UTC\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/update-profile",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "update-profile"]
+            },
+            "description": "Update user profile information.\n\n**Optional Fields:**\n- firstName, lastName, bio, phoneNumber\n- dateOfBirth, address, socialLinks\n- preferences (notifications, language, timezone)\n\n**Note:** Email and role cannot be updated through this endpoint."
+          },
+          "response": []
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"OldPassword123!\",\n  \"newPassword\": \"NewSecurePass123!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/change-password",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "change-password"]
+            },
+            "description": "Change user password.\n\n**Required Fields:**\n- currentPassword: User's current password\n- newPassword: New password (minimum 6 characters with uppercase, lowercase, and number)\n\n**Security:**\n- Current password must be verified\n- New password is hashed before storage"
+          },
+          "response": []
+        },
+        {
+          "name": "Verify Token",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/verify-token",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "verify-token"]
+            },
+            "description": "Verify if the provided JWT token is valid.\n\n**Use Cases:**\n- Check token validity before making requests\n- Validate user session\n- Frontend token verification"
+          },
+          "response": []
+        },
+        {
+          "name": "Logout User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/logout",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "logout"]
+            },
+            "description": "Logout user (client-side token removal).\n\n**Note:**\n- In stateless JWT implementation, logout is primarily client-side\n- Server logs the logout event\n- Client should remove token from storage"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Courses",
+      "description": "Course management endpoints for creating, reading, updating, and managing courses.",
+      "item": [
+        {
+          "name": "Get All Courses",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/courses?page=1&limit=10&category=programming&level=beginner&sort=newest",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "courses"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number (default: 1)"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Items per page (default: 10, max: 50)"
+                },
+                {
+                  "key": "category",
+                  "value": "programming",
+                  "description": "Filter by category"
+                },
+                {
+                  "key": "level",
+                  "value": "beginner",
+                  "description": "Filter by level (beginner, intermediate, advanced)"
+                },
+                {
+                  "key": "sort",
+                  "value": "newest",
+                  "description": "Sort by: newest, oldest, popular, rating, price_low, price_high"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Search in title and description",
+                  "disabled": true
+                },
+                {
+                  "key": "price",
+                  "value": "",
+                  "description": "Filter by price type: free, paid",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get all published courses with filtering, searching, and pagination.\n\n**Query Parameters:**\n- page: Page number (default: 1)\n- limit: Items per page (default: 10, max: 50)\n- category: Filter by category\n- level: beginner, intermediate, advanced\n- price: free, paid\n- search: Search in title and description\n- sort: newest, oldest, popular, rating, price_low, price_high\n\n**Response:**\n- Array of courses with pagination info\n- Includes instructor information\n- Only published courses are returned"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Course by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/courses/507f1f77bcf86cd799439011",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "courses", "507f1f77bcf86cd799439011"]
+            },
+            "description": "Get detailed information about a specific course.\n\n**Parameters:**\n- id: Course ID (MongoDB ObjectId)\n\n**Response:**\n- Complete course information\n- Instructor details\n- Modules and lessons (if available)\n- Enrollment status (if user is authenticated)"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Course",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Advanced React Development\",\n  \"description\": \"Master advanced React concepts including hooks, context, performance optimization, and modern patterns. Build production-ready applications with best practices.\",\n  \"shortDescription\": \"Advanced React development course covering hooks, context, and optimization.\",\n  \"category\": \"web-development\",\n  \"subcategory\": \"react\",\n  \"level\": \"advanced\",\n  \"price\": 199.99,\n  \"currency\": \"USD\",\n  \"duration\": 50,\n  \"thumbnail\": \"https://example.com/course-thumbnail.jpg\",\n  \"tags\": [\"react\", \"javascript\", \"hooks\", \"advanced\"],\n  \"prerequisites\": [\n    \"Strong JavaScript knowledge\",\n    \"Basic React experience\",\n    \"Understanding of ES6+\"\n  ],\n  \"learningObjectives\": [\n    \"Master React hooks and custom hooks\",\n    \"Implement advanced state management\",\n    \"Optimize React application performance\",\n    \"Build scalable React applications\"\n  ],\n  \"targetAudience\": [\n    \"Experienced React developers\",\n    \"Frontend developers seeking advanced skills\"\n  ],\n  \"requirements\": [\n    \"React development experience\",\n    \"Node.js and npm installed\",\n    \"Code editor (VS Code recommended)\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/courses",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "courses"]
+            },
+            "description": "Create a new course (Instructor or Admin only).\n\n**Required Fields:**\n- title: Course title (5-100 characters)\n- description: Detailed description (50-2000 characters)\n- shortDescription: Brief description (20-200 characters)\n- category: Course category\n- level: beginner, intermediate, advanced\n- price: Course price (0 for free)\n- duration: Course duration in hours\n- learningObjectives: Array of learning objectives\n\n**Authentication:**\n- Requires instructor or admin role\n- Course is automatically assigned to the authenticated user"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Course",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Updated Course Title\",\n  \"description\": \"Updated course description with more details about the content and learning outcomes.\",\n  \"price\": 149.99,\n  \"tags\": [\"updated\", \"react\", \"javascript\"]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/courses/507f1f77bcf86cd799439011",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "courses", "507f1f77bcf86cd799439011"]
+            },
+            "description": "Update course information (Course instructor or Admin only).\n\n**Parameters:**\n- id: Course ID\n\n**Authorization:**\n- Only course instructor or admin can update\n- Some fields cannot be updated once published\n\n**Updatable Fields:**\n- title, description, shortDescription\n- price, duration, tags\n- prerequisites, learningObjectives\n- targetAudience, requirements"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Course",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/courses/507f1f77bcf86cd799439011",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "courses", "507f1f77bcf86cd799439011"]
+            },
+            "description": "Delete a course (Course instructor or Admin only).\n\n**Parameters:**\n- id: Course ID\n\n**Authorization:**\n- Only course instructor or admin can delete\n- Courses with enrollments can only be deleted by admin\n\n**Warning:**\n- This action is irreversible\n- All related data (modules, lessons) will be affected"
+          },
+          "response": []
+        },
+        {
+          "name": "Publish/Unpublish Course",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isPublished\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/courses/507f1f77bcf86cd799439011/publish",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "courses", "507f1f77bcf86cd799439011", "publish"]
+            },
+            "description": "Publish or unpublish a course.\n\n**Parameters:**\n- id: Course ID\n\n**Body:**\n- isPublished: true to publish, false to unpublish\n\n**Effects:**\n- Published courses are visible to students\n- Unpublished courses are only visible to instructors and admins\n- Publishing sets the publishedAt timestamp"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Course Categories",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/courses/categories",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "courses", "categories"]
+            },
+            "description": "Get all course categories with course counts and statistics.\n\n**Response:**\n- List of categories\n- Course count per category\n- Average price and rating per category"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Course Statistics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/courses/stats",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "courses", "stats"]
+            },
+            "description": "Get overall course statistics (Admin only).\n\n**Authentication:**\n- Admin role required\n\n**Response:**\n- Total courses count\n- Total enrollments\n- Average price and rating\n- Other platform statistics"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Enrollments",
+      "description": "Student enrollment management endpoints for course registration and progress tracking.",
+      "item": [
+        {
+          "name": "Enroll in Course",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"courseId\": \"507f1f77bcf86cd799439011\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/enrollments",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "enrollments"]
+            },
+            "description": "Enroll a student in a course.\n\n**Required Fields:**\n- courseId: ID of the course to enroll in\n\n**Authentication:**\n- Student role required\n- Must be authenticated\n\n**Validation:**\n- Course must exist and be published\n- Student cannot enroll twice in the same course\n- Creates payment record for paid courses"
+          },
+          "response": [
+            {
+              "name": "Successful Enrollment",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{auth_token}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"courseId\": \"507f1f77bcf86cd799439011\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/v1/enrollments",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "v1", "enrollments"]
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Enrolled successfully\",\n  \"data\": {\n    \"_id\": \"507f1f77bcf86cd799439012\",\n    \"student\": {\n      \"_id\": \"507f1f77bcf86cd799439013\",\n      \"firstName\": \"Jane\",\n      \"lastName\": \"Student\",\n      \"email\": \"student@lms.com\"\n    },\n    \"course\": {\n      \"_id\": \"507f1f77bcf86cd799439011\",\n      \"title\": \"Complete JavaScript Fundamentals\",\n      \"price\": 99.99\n    },\n    \"enrolledAt\": \"2024-01-15T10:30:00.000Z\",\n    \"status\": \"active\",\n    \"progress\": {\n      \"percentage\": 0,\n      \"timeSpent\": 0\n    }\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get My Enrollments",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/enrollments/my",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "enrollments", "my"]
+            },
+            "description": "Get all enrollments for the authenticated user.\n\n**Authentication:**\n- User must be authenticated\n- Returns enrollments for the current user only\n\n**Response:**\n- List of user's enrollments\n- Course information for each enrollment\n- Progress and completion status\n- Sorted by enrollment date (newest first)"
+          },
+          "response": [
+            {
+              "name": "My Enrollments",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{auth_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/v1/enrollments/my",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "v1", "enrollments", "my"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"count\": 2,\n  \"data\": [\n    {\n      \"_id\": \"507f1f77bcf86cd799439012\",\n      \"course\": {\n        \"_id\": \"507f1f77bcf86cd799439011\",\n        \"title\": \"Complete JavaScript Fundamentals\",\n        \"thumbnail\": \"https://example.com/js-thumbnail.jpg\",\n        \"price\": 99.99,\n        \"level\": \"beginner\",\n        \"category\": \"programming\"\n      },\n      \"enrolledAt\": \"2024-01-15T10:30:00.000Z\",\n      \"status\": \"active\",\n      \"progress\": {\n        \"percentage\": 45,\n        \"timeSpent\": 1200\n      }\n    }\n  ]\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "description": "User management endpoints for admin operations and user information retrieval.",
+      "item": [
+        {
+          "name": "Get All Users",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/users",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "users"]
+            },
+            "description": "Get all users (Admin only).\n\n**Authentication:**\n- Admin role required\n\n**Response:**\n- List of all users\n- User profiles without passwords\n- Includes user statistics"
+          },
+          "response": []
+        },
+        {
+          "name": "Get User by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/users/507f1f77bcf86cd799439013",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "users", "507f1f77bcf86cd799439013"]
+            },
+            "description": "Get user profile by ID.\n\n**Parameters:**\n- id: User ID\n\n**Authorization:**\n- Users can only view their own profile\n- Admins can view any user profile\n\n**Response:**\n- Complete user profile\n- No password information included"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "System",
+      "description": "System health and utility endpoints.",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            },
+            "description": "Check if the API server is running and healthy.\n\n**Response:**\n- Server status\n- Timestamp\n- Environment information\n\n**Use Cases:**\n- Server monitoring\n- Load balancer health checks\n- Deployment verification"
+          },
+          "response": [
+            {
+              "name": "Server Healthy",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/health",
+                  "host": ["{{base_url}}"],
+                  "path": ["health"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Server is running\",\n  \"timestamp\": \"2024-01-15T10:30:00.000Z\",\n  \"environment\": \"development\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Lessons (Coming Soon)",
+      "description": "Lesson management endpoints - Currently under development.",
+      "item": [
+        {
+          "name": "Get Lessons",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/lessons",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "lessons"]
+            },
+            "description": "Get lessons - Coming soon.\n\n**Status:** Under Development\n\n**Planned Features:**\n- Get lessons by course\n- Create and update lessons\n- Lesson content management\n- Progress tracking"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Assignments (Coming Soon)",
+      "description": "Assignment management endpoints - Currently under development.",
+      "item": [
+        {
+          "name": "Get Assignments",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/assignments",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "assignments"]
+            },
+            "description": "Get assignments - Coming soon.\n\n**Status:** Under Development\n\n**Planned Features:**\n- Create and manage assignments\n- Assignment submissions\n- Grading system\n- Due date management"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Quizzes (Coming Soon)",
+      "description": "Quiz and assessment endpoints - Currently under development.",
+      "item": [
+        {
+          "name": "Get Quizzes",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/quizzes",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "quizzes"]
+            },
+            "description": "Get quizzes - Coming soon.\n\n**Status:** Under Development\n\n**Planned Features:**\n- Create and manage quizzes\n- Multiple question types\n- Timed assessments\n- Auto-grading system"
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Global pre-request script",
+          "// Add any global preprocessing here",
+          "",
+          "console.log('Making request to:', pm.request.url.toString());"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Global test script",
+          "",
+          "// Check response time",
+          "pm.test('Response time is less than 2000ms', function () {",
+          "    pm.expect(pm.response.responseTime).to.be.below(2000);",
+          "});",
+          "",
+          "// Check status code for successful requests",
+          "if (pm.response.code >= 200 && pm.response.code < 400) {",
+          "    pm.test('Successful request', function () {",
+          "        pm.response.to.have.status.between(200, 399);",
+          "    });",
+          "}",
+          "",
+          "// Auto-extract token from login responses",
+          "if (pm.request.url.path.includes('auth/login') || pm.request.url.path.includes('auth/register')) {",
+          "    if (pm.response.code === 200 || pm.response.code === 201) {",
+          "        const responseJson = pm.response.json();",
+          "        if (responseJson.token) {",
+          "            pm.environment.set('auth_token', responseJson.token);",
+          "            console.log('🔐 Token automatically saved to environment');",
+          "        }",
+          "    }",
+          "}"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:5000",
+      "type": "string",
+      "description": "Base URL for the LMS API"
+    },
+    {
+      "key": "auth_token",
+      "value": "",
+      "type": "string",
+      "description": "JWT authentication token (automatically set after login)"
+    }
+  ]
+}
