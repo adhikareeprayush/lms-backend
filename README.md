@@ -1,5 +1,8 @@
 # LMS Backend API
 
+<img width="1918" height="1078" alt="image" src="https://github.com/user-attachments/assets/85ba181c-f555-489c-a8e3-7a0716669f3e" />
+
+
 Learning Management System REST API: **Node.js**, **Express**, **MongoDB** (Mongoose). Includes courses, modules, lessons, assignments, quizzes, enrollments, reviews, JWT auth, and **Swagger UI** at `/api-docs`.
 
 ## Quick start
