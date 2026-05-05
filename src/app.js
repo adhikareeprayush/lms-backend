@@ -158,18 +158,43 @@ function buildOpenApiSpecs() {
   return specsCache;
 }
 
-let swaggerUiHandler = null;
-function lazySwaggerUi(req, res, next) {
-  if (!swaggerUiHandler) {
-    swaggerUiHandler = swaggerUi.setup(buildOpenApiSpecs(), {
-      customCss: '.swagger-ui .topbar { display: none }',
-      customSiteTitle: 'LMS API Documentation'
-    });
-  }
-  swaggerUiHandler(req, res, next);
+/** Same major line as swagger-ui-express’s bundled swagger-ui-dist (see package-lock). */
+const swaggerUiDistVersion = require('swagger-ui-dist/package.json').version;
+const swaggerUiAssetBase = `https://unpkg.com/swagger-ui-dist@${swaggerUiDistVersion}`;
+
+const swaggerUiHtmlOptions = {
+  customCss: '.swagger-ui .topbar { display: none }',
+  customSiteTitle: 'LMS API Documentation'
+};
+
+/** Serve Swagger UI CSS/JS from CDN when local swagger-ui-dist files are missing (e.g. Vercel). */
+function patchSwaggerUiHtml(html) {
+  return html
+    .replace(/href="\.\/swagger-ui\.css"/, `href="${swaggerUiAssetBase}/swagger-ui.css"`)
+    .replace(/href="\.\/favicon-32x32\.png"/, `href="${swaggerUiAssetBase}/favicon-32x32.png"`)
+    .replace(/href="\.\/favicon-16x16\.png"/, `href="${swaggerUiAssetBase}/favicon-16x16.png"`)
+    .replace(/src="\.\/swagger-ui-bundle\.js"/, `src="${swaggerUiAssetBase}/swagger-ui-bundle.js"`)
+    .replace(
+      /src="\.\/swagger-ui-standalone-preset\.js"/,
+      `src="${swaggerUiAssetBase}/swagger-ui-standalone-preset.js"`
+    );
 }
 
-app.use('/api-docs', swaggerUi.serve, lazySwaggerUi);
+function swaggerUiIndex(req, res, next) {
+  if (req.method !== 'GET' && req.method !== 'HEAD') {
+    return next();
+  }
+  const urlPath = (req.originalUrl || '').split('?')[0];
+  if (urlPath !== '/api-docs' && urlPath !== '/api-docs/') {
+    return next();
+  }
+  const html = patchSwaggerUiHtml(
+    swaggerUi.generateHTML(buildOpenApiSpecs(), swaggerUiHtmlOptions)
+  );
+  res.type('html').send(html);
+}
+
+app.use('/api-docs', swaggerUi.serve, swaggerUiIndex);
 
 app.get('/', (req, res) => {
   res.status(200).json({
