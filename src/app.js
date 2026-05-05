@@ -52,7 +52,20 @@ function buildSwaggerServers() {
   return servers;
 }
 
-app.use(helmet());
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+        // Swagger UI loads swagger-ui-dist from unpkg when local assets are absent (e.g. Vercel).
+        'script-src': ["'self'", 'https://unpkg.com'],
+        'style-src': ["'self'", "'unsafe-inline'", 'https://unpkg.com'],
+        'img-src': ["'self'", 'data:', 'blob:', 'https://unpkg.com'],
+        'font-src': ["'self'", 'data:', 'https://unpkg.com']
+      }
+    }
+  })
+);
 app.use(
   cors({
     origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
@@ -158,7 +171,7 @@ function buildOpenApiSpecs() {
   return specsCache;
 }
 
-/** Same major line as swagger-ui-express’s bundled swagger-ui-dist (see package-lock). */
+/** Pin CDN assets to the installed swagger-ui-dist version (see package-lock). */
 const swaggerUiDistVersion = require('swagger-ui-dist/package.json').version;
 const swaggerUiAssetBase = `https://unpkg.com/swagger-ui-dist@${swaggerUiDistVersion}`;
 
@@ -221,6 +234,28 @@ app.get('/health', (req, res) => {
         : mongoose.connection.readyState === 2
           ? 'connecting'
           : 'disconnected'
+  });
+});
+
+app.get(['/api/v1', '/api/v1/'], (req, res) => {
+  res.status(200).json({
+    success: true,
+    name: 'LMS Backend API',
+    version: '1.0.0',
+    prefix: '/api/v1',
+    links: {
+      docs: '/api-docs',
+      auth: '/api/v1/auth',
+      users: '/api/v1/users',
+      courses: '/api/v1/courses',
+      enrollments: '/api/v1/enrollments',
+      modules: '/api/v1/modules',
+      lessons: '/api/v1/lessons',
+      assignments: '/api/v1/assignments',
+      quizzes: '/api/v1/quizzes',
+      submissions: '/api/v1/submissions',
+      reviews: '/api/v1/reviews'
+    }
   });
 });
 
