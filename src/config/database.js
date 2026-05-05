@@ -25,7 +25,18 @@ async function connectDB() {
   }
 
   try {
-    await mongoose.connect(process.env.MONGODB_URI);
+    const parsedSelectionMs = parseInt(process.env.MONGODB_SERVER_SELECTION_MS, 10);
+    const serverSelectionTimeoutMS =
+      Number.isFinite(parsedSelectionMs) && parsedSelectionMs > 0
+        ? parsedSelectionMs
+        : isServerless()
+          ? 8000
+          : 30000;
+
+    await mongoose.connect(process.env.MONGODB_URI, {
+      serverSelectionTimeoutMS,
+      maxPoolSize: isServerless() ? 10 : undefined
+    });
     logger.info(`MongoDB Connected: ${mongoose.connection.host}`);
     if (!isServerless()) {
       console.log(`✅ MongoDB Connected: ${mongoose.connection.host}`);

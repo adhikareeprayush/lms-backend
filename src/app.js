@@ -1,4 +1,5 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
@@ -33,15 +34,6 @@ const app = express();
 
 if (isServerlessRuntime) {
   app.set('trust proxy', 1);
-  const { connectDB } = require('./config/database');
-  app.use(async (req, res, next) => {
-    try {
-      await connectDB();
-      next();
-    } catch (err) {
-      next(err);
-    }
-  });
 }
 
 function buildSwaggerServers() {
@@ -85,6 +77,27 @@ app.use(mongoSanitize());
 app.use(xss());
 
 app.use(compression());
+
+if (isServerlessRuntime) {
+  const { connectDB } = require('./config/database');
+  app.use(async (req, res, next) => {
+    const routePath = req.path || '';
+    if (
+      routePath === '/' ||
+      routePath === '/health' ||
+      routePath === '/favicon.ico' ||
+      routePath.startsWith('/api-docs')
+    ) {
+      return next();
+    }
+    try {
+      await connectDB();
+      next();
+    } catch (err) {
+      next(err);
+    }
+  });
+}
 
 const swaggerOptions = {
   definition: {
@@ -148,12 +161,31 @@ app.use(
   })
 );
 
+app.get('/', (req, res) => {
+  res.status(200).json({
+    success: true,
+    name: 'LMS Backend API',
+    version: '1.0.0',
+    links: {
+      health: '/health',
+      docs: '/api-docs',
+      api: '/api/v1'
+    }
+  });
+});
+
 app.get('/health', (req, res) => {
   res.status(200).json({
     success: true,
     message: 'Server is running',
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV
+    environment: process.env.NODE_ENV,
+    database:
+      mongoose.connection.readyState === 1
+        ? 'connected'
+        : mongoose.connection.readyState === 2
+          ? 'connecting'
+          : 'disconnected'
   });
 });
 

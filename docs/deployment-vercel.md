@@ -42,13 +42,23 @@ Root directory should be the repository root (where `vercel.json` lives).
 ## How routing works
 
 - `vercel.json` rewrites every path to the `/api` serverless function (`api/index.js`).
-- The Express app handles `/health`, `/api-docs`, `/api/v1/...` as usual.
+- The Express app handles `/`, `/health`, `/api-docs`, `/api/v1/...` as usual.
 
 If anything returns 404 for valid routes, confirm the rewrite destination matches your Vercel version (`/api` vs `/api/index.js`); adjust `vercel.json` if needed.
 
+## Gateway timeouts (504)
+
+`/health` and `/` **do not open MongoDB** on Vercel, so they respond quickly even if Atlas is misconfigured. Other routes wait for Mongo with a **short selection timeout** (default **8s** serverless, override with `MONGODB_SERVER_SELECTION_MS`).
+
+If `/api/v1/*` still times out: verify **`MONGODB_URI`** in Vercel, Atlas **Network Access** (allow `0.0.0.0/0` for testing), and upgrade past Hobby if your functions are capped at **10s** (`maxDuration` in `vercel.json` may be clamped by plan).
+
+## Root URL
+
+`GET /` returns API metadata and links to `/health`, `/api-docs`, and `/api/v1`.
+
 ## Limits
 
-- **Function duration**: `vercel.json` sets `maxDuration` to 30s for `api/index.js` (adjust per your plan; hobby tier may cap lower).
+- **Function duration**: `vercel.json` sets `maxDuration` to **60s** for `api/index.js` where your plan allows it (Hobby may cap at **10s**).
 - **Cold starts**: First request after idle may be slower; Mongo connection is reused when the Node process stays warm.
 - **File uploads**: Heavy Multer/local file flows may need external storage (e.g. S3/Cloudinary), not Vercel’s ephemeral filesystem.
 
