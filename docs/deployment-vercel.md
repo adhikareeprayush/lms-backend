@@ -1,6 +1,6 @@
 # Deploying on Vercel
 
-This repo includes a serverless entry for [Vercel](https://vercel.com): `api/index.js` wraps the Express app with [`serverless-http`](https://github.com/dougmoscrop/serverless-http). `vercel.json` rewrites all requests to that function.
+This repo includes a serverless entry for [Vercel](https://vercel.com): **`api/index.js`** exports the Express app from `src/app.js` (see Vercel’s Express docs). `vercel.json` rewrites all requests to that function.
 
 ## Requirements
 
@@ -10,7 +10,7 @@ This repo includes a serverless entry for [Vercel](https://vercel.com): `api/ind
 ### Internal notes (fixes common `500 FUNCTION_INVOCATION_FAILED`)
 
 - **Winston** does not write to `src/logs/` on Vercel (read-only filesystem); the logger uses **console only** when `VERCEL` or `AWS_LAMBDA_FUNCTION_NAME` is set.
-- **Swagger** JSDoc globs use paths relative to `src/` (`__dirname`) so OpenAPI generation works in the serverless bundle.
+- **Swagger** OpenAPI is generated **lazily** on first `/api-docs` visit so API routes do not run `swagger-jsdoc` on every cold start.
 - **MongoDB** connection is opened per request on serverless (cached after first connect); set **`MONGODB_URI`** in Vercel or every invocation will error.
 
 ## Environment variables (Vercel)
@@ -48,9 +48,13 @@ If anything returns 404 for valid routes, confirm the rewrite destination matche
 
 ## Gateway timeouts (504)
 
-`/health` and `/` **do not open MongoDB** on Vercel, so they respond quickly even if Atlas is misconfigured. Other routes wait for Mongo with a **short selection timeout** (default **8s** serverless, override with `MONGODB_SERVER_SELECTION_MS`).
+`/health`, `/`, and `/api-docs` skip Mongo. Other routes open Mongo with **~4s selection/connect timeouts** on serverless (override via `MONGODB_SERVER_SELECTION_MS`) so the function fails fast instead of hanging until Vercel’s **10s Hobby limit**.
 
-If `/api/v1/*` still times out: verify **`MONGODB_URI`** in Vercel, Atlas **Network Access** (allow `0.0.0.0/0` for testing), and upgrade past Hobby if your functions are capped at **10s** (`maxDuration` in `vercel.json` may be clamped by plan).
+**Swagger/OpenAPI** is built **lazily** on the first `/api-docs` request so `/api/v1/*` cold starts do not pay for `swagger-jsdoc` scanning every route file.
+
+The serverless entry **`api/index.js`** exports the Express app directly, matching [Express on Vercel](https://vercel.com/docs/frameworks/backend/express).
+
+If **`/api/v1/*` still returns 504**, the usual cause is MongoDB never connecting in time: confirm **`MONGODB_URI`** in Vercel, Atlas **Network Access** (allow **`0.0.0.0/0`** for testing), and consider upgrading past Hobby’s **10s** function cap or lowering cold-start work further.
 
 ## Root URL
 

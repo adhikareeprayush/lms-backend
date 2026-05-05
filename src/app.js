@@ -140,26 +140,36 @@ const swaggerOptions = {
   ]
 };
 
-let specs;
-try {
-  specs = swaggerJsdoc(swaggerOptions);
-} catch (err) {
-  console.error('Swagger OpenAPI generation failed:', err.message);
-  specs = {
-    openapi: '3.0.0',
-    info: swaggerOptions.definition.info,
-    servers: swaggerOptions.definition.servers,
-    paths: {}
-  };
+let specsCache = null;
+function buildOpenApiSpecs() {
+  if (!specsCache) {
+    try {
+      specsCache = swaggerJsdoc(swaggerOptions);
+    } catch (err) {
+      console.error('Swagger OpenAPI generation failed:', err.message);
+      specsCache = {
+        openapi: '3.0.0',
+        info: swaggerOptions.definition.info,
+        servers: swaggerOptions.definition.servers,
+        paths: {}
+      };
+    }
+  }
+  return specsCache;
 }
-app.use(
-  '/api-docs',
-  swaggerUi.serve,
-  swaggerUi.setup(specs, {
-    customCss: '.swagger-ui .topbar { display: none }',
-    customSiteTitle: 'LMS API Documentation'
-  })
-);
+
+let swaggerUiHandler = null;
+function lazySwaggerUi(req, res, next) {
+  if (!swaggerUiHandler) {
+    swaggerUiHandler = swaggerUi.setup(buildOpenApiSpecs(), {
+      customCss: '.swagger-ui .topbar { display: none }',
+      customSiteTitle: 'LMS API Documentation'
+    });
+  }
+  swaggerUiHandler(req, res, next);
+}
+
+app.use('/api-docs', swaggerUi.serve, lazySwaggerUi);
 
 app.get('/', (req, res) => {
   res.status(200).json({

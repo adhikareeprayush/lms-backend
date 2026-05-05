@@ -5,6 +5,9 @@ function isServerless() {
   return Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
 }
 
+/** One shared connect attempt for concurrent serverless invocations. */
+let connectionPromise = null;
+
 /**
  * Connect to MongoDB. Safe for long-running servers and Vercel serverless
  * (reuses an established connection when readyState is connected).
@@ -24,32 +27,41 @@ async function connectDB() {
     process.exit(1);
   }
 
-  try {
+  if (!connectionPromise) {
     const parsedSelectionMs = parseInt(process.env.MONGODB_SERVER_SELECTION_MS, 10);
-    const serverSelectionTimeoutMS =
+    const timeoutMs =
       Number.isFinite(parsedSelectionMs) && parsedSelectionMs > 0
         ? parsedSelectionMs
         : isServerless()
-          ? 8000
+          ? 4000
           : 30000;
 
-    await mongoose.connect(process.env.MONGODB_URI, {
-      serverSelectionTimeoutMS,
-      maxPoolSize: isServerless() ? 10 : undefined
-    });
-    logger.info(`MongoDB Connected: ${mongoose.connection.host}`);
-    if (!isServerless()) {
-      console.log(`✅ MongoDB Connected: ${mongoose.connection.host}`);
-    }
-    return mongoose.connection;
-  } catch (error) {
-    logger.error('Database connection error:', error);
-    if (isServerless()) {
-      throw error;
-    }
-    console.error('❌ Database connection error:', error);
-    process.exit(1);
+    connectionPromise = (async () => {
+      try {
+        await mongoose.connect(process.env.MONGODB_URI, {
+          serverSelectionTimeoutMS: timeoutMs,
+          connectTimeoutMS: timeoutMs,
+          maxPoolSize: isServerless() ? 10 : undefined,
+          bufferCommands: false
+        });
+        logger.info(`MongoDB Connected: ${mongoose.connection.host}`);
+        if (!isServerless()) {
+          console.log(`✅ MongoDB Connected: ${mongoose.connection.host}`);
+        }
+        return mongoose.connection;
+      } catch (error) {
+        connectionPromise = null;
+        logger.error('Database connection error:', error);
+        if (isServerless()) {
+          throw error;
+        }
+        console.error('❌ Database connection error:', error);
+        process.exit(1);
+      }
+    })();
   }
+
+  return connectionPromise;
 }
 
 mongoose.connection.on('disconnected', () => {
