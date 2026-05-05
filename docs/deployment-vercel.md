@@ -1,11 +1,17 @@
 # Deploying on Vercel
 
-This repo includes a serverless entrypoint for [Vercel](https://vercel.com): `api/index.js` re-exports the Express `app` from `src/app.js`. Vercel routes all traffic to that function via `vercel.json` rewrites.
+This repo includes a serverless entry for [Vercel](https://vercel.com): `api/index.js` wraps the Express app with [`serverless-http`](https://github.com/dougmoscrop/serverless-http). `vercel.json` rewrites all requests to that function.
 
 ## Requirements
 
 - **MongoDB Atlas** (or another network-accessible MongoDB). Serverless cannot reach `localhost`; use a URI that allows Vercel’s egress IPs (Atlas: allow `0.0.0.0/0` for development or restrict by IP for production).
 - Environment variables configured in the Vercel dashboard.
+
+### Internal notes (fixes common `500 FUNCTION_INVOCATION_FAILED`)
+
+- **Winston** does not write to `src/logs/` on Vercel (read-only filesystem); the logger uses **console only** when `VERCEL` or `AWS_LAMBDA_FUNCTION_NAME` is set.
+- **Swagger** JSDoc globs use paths relative to `src/` (`__dirname`) so OpenAPI generation works in the serverless bundle.
+- **MongoDB** connection is opened per request on serverless (cached after first connect); set **`MONGODB_URI`** in Vercel or every invocation will error.
 
 ## Environment variables (Vercel)
 
@@ -21,7 +27,7 @@ Optional: `JWT_EXPIRE`, rate limits, etc. (see [Environment](./environment.md)).
 
 Vercel provides:
 
-- `VERCEL` — present on serverless invocations (used by the app for DB connection behavior and trust proxy).
+- `VERCEL` — set by Vercel on invocations (along with **trust proxy**, Mongo middleware, console-only logging).
 - `VERCEL_URL` — deployment hostname (used in Swagger “Servers” when present).
 
 ## Deploy
@@ -55,4 +61,4 @@ Swagger UI is available at `https://<your-deployment>/api-docs`. The OpenAPI “
 | Concern | Local (`npm start`) | Vercel |
 |--------|---------------------|--------|
 | Entry | `src/server.js` listens on `PORT` | `api/index.js` only |
-| MongoDB | Connect in `server.js` | Connect per invocation via middleware when `VERCEL` is set (cached connection) |
+| MongoDB | Connect in `server.js` | Connect via middleware when `VERCEL` / Lambda (cached connection) |

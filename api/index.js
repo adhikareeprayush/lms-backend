@@ -1,5 +1,8 @@
 /**
- * Vercel serverless entry: exports the Express app.
- * Routing is configured in vercel.json (all paths → this function).
+ * Vercel serverless entry. Rewrites in vercel.json send all traffic here.
+ * serverless-http adapts API Gateway-style requests to Express.
  */
-module.exports = require('../src/app');
+const serverless = require('serverless-http');
+const app = require('../src/app');
+
+module.exports = serverless(app);

@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 const logger = require('./logger');
 
 function isServerless() {
-  return Boolean(process.env.VERCEL);
+  return Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
 }
 
 /**

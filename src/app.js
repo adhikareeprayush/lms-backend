@@ -7,8 +7,13 @@ const mongoSanitize = require('express-mongo-sanitize');
 const xss = require('xss-clean');
 const swaggerJsdoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
+const path = require('path');
 
 require('dotenv').config();
+
+const isServerlessRuntime = Boolean(
+  process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME
+);
 
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
@@ -26,7 +31,7 @@ const { authenticate } = require('./middleware/auth');
 
 const app = express();
 
-if (process.env.VERCEL) {
+if (isServerlessRuntime) {
   app.set('trust proxy', 1);
   const { connectDB } = require('./config/database');
   app.use(async (req, res, next) => {
@@ -68,7 +73,8 @@ const limiter = rateLimit({
   max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100,
   message: {
     error: 'Too many requests from this IP, please try again later.'
-  }
+  },
+  ...(isServerlessRuntime ? { validate: { ip: false } } : {})
 });
 app.use('/api', limiter);
 
@@ -115,10 +121,24 @@ const swaggerOptions = {
       }
     }
   },
-  apis: ['./src/routes/*.js', './src/models/*.js']
+  apis: [
+    path.join(__dirname, 'routes', '*.js'),
+    path.join(__dirname, 'models', '*.js')
+  ]
 };
 
-const specs = swaggerJsdoc(swaggerOptions);
+let specs;
+try {
+  specs = swaggerJsdoc(swaggerOptions);
+} catch (err) {
+  console.error('Swagger OpenAPI generation failed:', err.message);
+  specs = {
+    openapi: '3.0.0',
+    info: swaggerOptions.definition.info,
+    servers: swaggerOptions.definition.servers,
+    paths: {}
+  };
+}
 app.use(
   '/api-docs',
   swaggerUi.serve,
