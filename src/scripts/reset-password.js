@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 require('dotenv').config();
 
-const User = require('./src/models/User');
+const User = require('../models/User');
 
 async function resetPassword(email, newPassword) {
   try {
@@ -39,8 +39,8 @@ async function resetPassword(email, newPassword) {
 // Get command line arguments
 const args = process.argv.slice(2);
 if (args.length !== 2) {
-  console.log('Usage: node reset-password.js <email> <new-password>');
-  console.log('Example: node reset-password.js adhikareeprayush@gmail.com NewPassword123');
+  console.log('Usage: node src/scripts/reset-password.js <email> <new-password>');
+  console.log('Example: npm run reset-password -- user@example.com NewPassword123');
   process.exit(1);
 }
 

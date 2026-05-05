@@ -20,7 +20,7 @@ require('dotenv').config({ path: envPath });
 // Check required environment variables
 const requiredEnvVars = ['MONGODB_URI', 'JWT_SECRET', 'PORT'];
 
-let missingVars = [];
+const missingVars = [];
 requiredEnvVars.forEach((varName) => {
   if (!process.env[varName]) {
     missingVars.push(varName);
@@ -45,9 +45,7 @@ const checkMongoDB = async () => {
   try {
     console.log('🔍 Checking MongoDB connection...');
     await mongoose.connect(process.env.MONGODB_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-      serverSelectionTimeoutMS: 5000 // 5 second timeout
+      serverSelectionTimeoutMS: 5000
     });
     console.log('✅ MongoDB connection successful');
     await mongoose.connection.close();

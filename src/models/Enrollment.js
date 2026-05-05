@@ -190,7 +190,6 @@ enrollmentSchema.pre('save', function (next) {
 
 // Instance method to calculate progress
 enrollmentSchema.methods.calculateProgress = async function () {
-  const Course = mongoose.model('Course');
   const Lesson = mongoose.model('Lesson');
   const Quiz = mongoose.model('Quiz');
   const Assignment = mongoose.model('Assignment');

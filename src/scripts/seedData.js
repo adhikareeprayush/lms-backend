@@ -1,19 +1,21 @@
 const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
 require('dotenv').config();
 
 // Import models
 const User = require('../models/User');
 const Course = require('../models/Course');
 const Enrollment = require('../models/Enrollment');
+const Module = require('../models/Module');
+const Lesson = require('../models/Lesson');
+const Assignment = require('../models/Assignment');
+const Quiz = require('../models/Quiz');
+const Submission = require('../models/Submission');
+const Review = require('../models/Review');
 
 // Connect to database
 const connectDB = async () => {
   try {
-    await mongoose.connect(process.env.MONGODB_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true
-    });
+    await mongoose.connect(process.env.MONGODB_URI);
     console.log('✅ MongoDB Connected for seeding');
   } catch (error) {
     console.error('❌ Database connection error:', error);
@@ -318,9 +320,15 @@ const seedData = async () => {
     console.log('🗑️  Clearing existing data...');
 
     // Clear existing data
-    await User.deleteMany({});
-    await Course.deleteMany({});
+    await Submission.deleteMany({});
+    await Review.deleteMany({});
+    await Lesson.deleteMany({});
+    await Module.deleteMany({});
+    await Assignment.deleteMany({});
+    await Quiz.deleteMany({});
     await Enrollment.deleteMany({});
+    await Course.deleteMany({});
+    await User.deleteMany({});
 
     console.log('👥 Creating users...');
 
@@ -342,6 +350,89 @@ const seedData = async () => {
 
     const createdCourses = await Course.create(coursesWithInstructors);
     console.log(`✅ Created ${createdCourses.length} courses`);
+
+    const demoCourse = createdCourses.find((c) => c.title.includes('JavaScript'));
+    if (demoCourse) {
+      console.log('📦 Creating module, lessons, assignment, and quiz for demo course...');
+      const courseModule = await Module.create({
+        course: demoCourse._id,
+        title: 'Getting Started',
+        description: 'Introduction and fundamentals',
+        order: 1,
+        isPublished: true
+      });
+
+      await Lesson.create([
+        {
+          title: 'Welcome to JavaScript',
+          description: 'Orientation',
+          course: demoCourse._id,
+          module: courseModule._id,
+          type: 'text',
+          duration: 15,
+          order: 1,
+          isPublished: true,
+          isPreview: true,
+          content: { textContent: '# Welcome\n\nStart your journey here.' }
+        },
+        {
+          title: 'Variables and Types',
+          description: 'Core syntax',
+          course: demoCourse._id,
+          module: courseModule._id,
+          type: 'video',
+          duration: 25,
+          order: 2,
+          isPublished: true,
+          content: {
+            videoUrl: 'https://example.com/intro.mp4',
+            videoDuration: 1200
+          }
+        }
+      ]);
+
+      await Assignment.create({
+        course: demoCourse._id,
+        module: courseModule._id,
+        title: 'Hello JavaScript',
+        description: 'Your first exercise',
+        instructions: 'Write a function that logs "Hello, LMS!"',
+        maxPoints: 100,
+        isPublished: true,
+        dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+      });
+
+      await Quiz.create({
+        course: demoCourse._id,
+        title: 'JavaScript Basics Check',
+        description: 'Quick knowledge check',
+        passingScore: 70,
+        isPublished: true,
+        questions: [
+          {
+            questionText: 'JavaScript typically runs in the browser.',
+            type: 'true_false',
+            correctAnswer: true,
+            points: 1
+          },
+          {
+            questionText: 'Which keyword declares a block-scoped variable?',
+            type: 'multiple_choice',
+            options: ['var', 'let', 'function', 'define'],
+            correctAnswer: 1,
+            points: 2
+          }
+        ]
+      });
+
+      await Course.findByIdAndUpdate(demoCourse._id, {
+        'stats.totalLessons': 2,
+        'stats.totalAssignments': 1,
+        'stats.totalQuizzes': 1
+      });
+
+      console.log('✅ Demo learning content created');
+    }
 
     console.log('📝 Creating sample enrollments...');
 

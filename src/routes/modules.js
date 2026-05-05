@@ -1,8 +1,6 @@
 const express = require('express');
 const { body, param, validationResult } = require('express-validator');
-const Assignment = require('../models/Assignment');
 const Module = require('../models/Module');
-const Course = require('../models/Course');
 const { authenticate, authorize, optionalAuthenticate } = require('../middleware/auth');
 const { ensureCourseStaff, canAccessCourseContent } = require('../utils/courseAccess');
 const logger = require('../config/logger');
@@ -12,16 +10,25 @@ const router = express.Router();
 /**
  * @swagger
  * tags:
- *   name: Assignments
- *   description: Course assignments
+ *   name: Modules
+ *   description: Course modules (sections)
  */
 
 /**
  * @swagger
- * /api/v1/assignments/course/{courseId}:
+ * /api/v1/modules/course/{courseId}:
  *   get:
- *     summary: List assignments for a course
- *     tags: [Assignments]
+ *     summary: List modules for a course
+ *     tags: [Modules]
+ *     parameters:
+ *       - in: path
+ *         name: courseId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: List of modules
  */
 router.get(
   '/course/:courseId',
@@ -39,7 +46,7 @@ router.get(
         return res.status(access.status).json({ success: false, message: access.message });
       }
 
-      const filter = { course: req.params.courseId };
+      const query = { course: req.params.courseId };
       const isStaff =
         req.user &&
         (req.user.role === 'admin' ||
@@ -47,11 +54,11 @@ router.get(
             access.course.instructor.toString() === req.user._id.toString()));
 
       if (!isStaff) {
-        filter.isPublished = true;
+        query.isPublished = true;
       }
 
-      const assignments = await Assignment.find(filter).sort({ dueDate: 1 });
-      res.status(200).json({ success: true, count: assignments.length, data: assignments });
+      const modules = await Module.find(query).sort({ order: 1 });
+      res.status(200).json({ success: true, count: modules.length, data: modules });
     } catch (err) {
       next(err);
     }
@@ -60,10 +67,21 @@ router.get(
 
 /**
  * @swagger
- * /api/v1/assignments/{id}:
+ * /api/v1/modules/{id}:
  *   get:
- *     summary: Get assignment by ID
- *     tags: [Assignments]
+ *     summary: Get module by ID
+ *     tags: [Modules]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Module found
+ *       404:
+ *         description: Not found
  */
 router.get('/:id', optionalAuthenticate, [param('id').isMongoId()], async (req, res, next) => {
   try {
@@ -72,12 +90,12 @@ router.get('/:id', optionalAuthenticate, [param('id').isMongoId()], async (req, 
       return res.status(400).json({ success: false, message: 'Validation failed', errors: errors.array() });
     }
 
-    const assignment = await Assignment.findById(req.params.id);
-    if (!assignment) {
-      return res.status(404).json({ success: false, message: 'Assignment not found' });
+    const mod = await Module.findById(req.params.id);
+    if (!mod) {
+      return res.status(404).json({ success: false, message: 'Module not found' });
     }
 
-    const access = await canAccessCourseContent(req.user || null, assignment.course);
+    const access = await canAccessCourseContent(req.user || null, mod.course);
     if (!access.ok) {
       return res.status(access.status).json({ success: false, message: access.message });
     }
@@ -88,11 +106,11 @@ router.get('/:id', optionalAuthenticate, [param('id').isMongoId()], async (req, 
         (req.user.role === 'instructor' &&
           access.course.instructor.toString() === req.user._id.toString()));
 
-    if (!assignment.isPublished && !isStaff && !access.enrollment) {
-      return res.status(403).json({ success: false, message: 'Assignment not available' });
+    if (!mod.isPublished && !isStaff) {
+      return res.status(403).json({ success: false, message: 'Module not available' });
     }
 
-    res.status(200).json({ success: true, data: assignment });
+    res.status(200).json({ success: true, data: mod });
   } catch (err) {
     next(err);
   }
@@ -100,10 +118,10 @@ router.get('/:id', optionalAuthenticate, [param('id').isMongoId()], async (req, 
 
 /**
  * @swagger
- * /api/v1/assignments:
+ * /api/v1/modules:
  *   post:
- *     summary: Create assignment
- *     tags: [Assignments]
+ *     summary: Create a module
+ *     tags: [Modules]
  *     security:
  *       - bearerAuth: []
  */
@@ -113,13 +131,9 @@ router.post(
   authorize('instructor', 'admin'),
   [
     body('course').isMongoId(),
-    body('title').trim().notEmpty().isLength({ max: 200 }),
+    body('title').trim().notEmpty().isLength({ max: 150 }),
+    body('order').isInt({ min: 1 }),
     body('description').optional().isString(),
-    body('instructions').optional().isString(),
-    body('module').optional().isMongoId(),
-    body('dueDate').optional().isISO8601(),
-    body('maxPoints').optional().isFloat({ min: 1 }),
-    body('attachments').optional().isArray(),
     body('isPublished').optional().isBoolean()
   ],
   async (req, res, next) => {
@@ -134,21 +148,9 @@ router.post(
         return res.status(staff.status).json({ success: false, message: staff.message });
       }
 
-      if (req.body.module) {
-        const mod = await Module.findById(req.body.module);
-        if (!mod || mod.course.toString() !== req.body.course) {
-          return res.status(400).json({ success: false, message: 'Module does not belong to this course' });
-        }
-      }
-
-      const assignment = await Assignment.create(req.body);
-
-      await Course.findByIdAndUpdate(req.body.course, {
-        $inc: { 'stats.totalAssignments': 1 }
-      });
-
-      logger.info(`Assignment created ${assignment._id}`);
-      res.status(201).json({ success: true, message: 'Assignment created', data: assignment });
+      const mod = await Module.create(req.body);
+      logger.info(`Module created: ${mod._id} for course ${req.body.course}`);
+      res.status(201).json({ success: true, message: 'Module created', data: mod });
     } catch (err) {
       next(err);
     }
@@ -157,10 +159,10 @@ router.post(
 
 /**
  * @swagger
- * /api/v1/assignments/{id}:
+ * /api/v1/modules/{id}:
  *   put:
- *     summary: Update assignment
- *     tags: [Assignments]
+ *     summary: Update a module
+ *     tags: [Modules]
  *     security:
  *       - bearerAuth: []
  */
@@ -172,11 +174,7 @@ router.put(
     param('id').isMongoId(),
     body('title').optional().trim().notEmpty(),
     body('description').optional().isString(),
-    body('instructions').optional().isString(),
-    body('module').optional().isMongoId(),
-    body('dueDate').optional().isISO8601(),
-    body('maxPoints').optional().isFloat({ min: 1 }),
-    body('attachments').optional().isArray(),
+    body('order').optional().isInt({ min: 1 }),
     body('isPublished').optional().isBoolean()
   ],
   async (req, res, next) => {
@@ -186,27 +184,19 @@ router.put(
         return res.status(400).json({ success: false, message: 'Validation failed', errors: errors.array() });
       }
 
-      const assignment = await Assignment.findById(req.params.id);
-      if (!assignment) {
-        return res.status(404).json({ success: false, message: 'Assignment not found' });
+      const mod = await Module.findById(req.params.id);
+      if (!mod) {
+        return res.status(404).json({ success: false, message: 'Module not found' });
       }
 
-      const staff = await ensureCourseStaff(req.user, assignment.course);
+      const staff = await ensureCourseStaff(req.user, mod.course);
       if (!staff.ok) {
         return res.status(staff.status).json({ success: false, message: staff.message });
       }
 
-      if (req.body.module) {
-        const mod = await Module.findById(req.body.module);
-        if (!mod || mod.course.toString() !== assignment.course.toString()) {
-          return res.status(400).json({ success: false, message: 'Invalid module for this course' });
-        }
-      }
-
-      Object.assign(assignment, req.body);
-      await assignment.save();
-
-      res.status(200).json({ success: true, message: 'Assignment updated', data: assignment });
+      Object.assign(mod, req.body);
+      await mod.save();
+      res.status(200).json({ success: true, message: 'Module updated', data: mod });
     } catch (err) {
       next(err);
     }
@@ -215,10 +205,10 @@ router.put(
 
 /**
  * @swagger
- * /api/v1/assignments/{id}:
+ * /api/v1/modules/{id}:
  *   delete:
- *     summary: Delete assignment
- *     tags: [Assignments]
+ *     summary: Delete a module
+ *     tags: [Modules]
  *     security:
  *       - bearerAuth: []
  */
@@ -234,27 +224,27 @@ router.delete(
         return res.status(400).json({ success: false, message: 'Validation failed', errors: errors.array() });
       }
 
-      const assignment = await Assignment.findById(req.params.id);
-      if (!assignment) {
-        return res.status(404).json({ success: false, message: 'Assignment not found' });
+      const mod = await Module.findById(req.params.id);
+      if (!mod) {
+        return res.status(404).json({ success: false, message: 'Module not found' });
       }
 
-      const staff = await ensureCourseStaff(req.user, assignment.course);
+      const staff = await ensureCourseStaff(req.user, mod.course);
       if (!staff.ok) {
         return res.status(staff.status).json({ success: false, message: staff.message });
       }
 
-      const courseId = assignment.course;
-      await assignment.deleteOne();
+      const Lesson = require('../models/Lesson');
+      const hasLessons = await Lesson.exists({ module: mod._id });
+      if (hasLessons) {
+        return res.status(400).json({
+          success: false,
+          message: 'Delete or reassign lessons in this module first'
+        });
+      }
 
-      await Course.findByIdAndUpdate(courseId, {
-        $inc: { 'stats.totalAssignments': -1 }
-      });
-
-      const Submission = require('../models/Submission');
-      await Submission.deleteMany({ assignment: req.params.id });
-
-      res.status(200).json({ success: true, message: 'Assignment deleted' });
+      await mod.deleteOne();
+      res.status(200).json({ success: true, message: 'Module deleted' });
     } catch (err) {
       next(err);
     }

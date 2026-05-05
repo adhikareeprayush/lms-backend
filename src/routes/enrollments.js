@@ -119,8 +119,11 @@ router.post(
 router.get('/my', authenticate, async (req, res, next) => {
   try {
     const enrollments = await Enrollment.find({ student: req.user._id })
-      .populate('course', 'title description thumbnail price level category instructor')
-      .populate('course.instructor', 'firstName lastName')
+      .populate({
+        path: 'course',
+        select: 'title description thumbnail price level category instructor',
+        populate: { path: 'instructor', select: 'firstName lastName avatar' }
+      })
       .sort({ enrolledAt: -1 });
 
     res.status(200).json({
@@ -132,5 +135,111 @@ router.get('/my', authenticate, async (req, res, next) => {
     next(error);
   }
 });
+
+/**
+ * @swagger
+ * /api/v1/enrollments/{id}:
+ *   get:
+ *     summary: Get enrollment by ID
+ *     tags: [Enrollments]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.get(
+  '/:id',
+  authenticate,
+  [param('id').isMongoId()],
+  async (req, res, next) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({
+          success: false,
+          message: 'Validation failed',
+          errors: errors.array()
+        });
+      }
+
+      const enrollment = await Enrollment.findById(req.params.id)
+        .populate('student', 'firstName lastName email')
+        .populate({
+          path: 'course',
+          select: 'title instructor',
+          populate: { path: 'instructor', select: 'firstName lastName email' }
+        });
+
+      if (!enrollment) {
+        return res.status(404).json({ success: false, message: 'Enrollment not found' });
+      }
+
+      const sid = enrollment.student.id || enrollment.student._id || enrollment.student;
+      const owns = sid.toString() === req.user._id.toString();
+
+      const instructorRef = enrollment.course.instructor;
+      const instructorId = instructorRef?.id || instructorRef?._id || instructorRef;
+      const isCourseInstructor =
+        req.user.role === 'instructor' &&
+        instructorId &&
+        instructorId.toString() === req.user._id.toString();
+
+      if (req.user.role !== 'admin' && !owns && !isCourseInstructor) {
+        return res.status(403).json({ success: false, message: 'Access denied' });
+      }
+
+      res.status(200).json({ success: true, data: enrollment });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+/**
+ * @swagger
+ * /api/v1/enrollments/{id}:
+ *   delete:
+ *     summary: Drop out of a course (student) or remove enrollment (admin)
+ *     tags: [Enrollments]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.delete(
+  '/:id',
+  authenticate,
+  [param('id').isMongoId()],
+  async (req, res, next) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({
+          success: false,
+          message: 'Validation failed',
+          errors: errors.array()
+        });
+      }
+
+      const enrollment = await Enrollment.findById(req.params.id);
+      if (!enrollment) {
+        return res.status(404).json({ success: false, message: 'Enrollment not found' });
+      }
+
+      const owns = enrollment.student.toString() === req.user._id.toString();
+      if (req.user.role !== 'admin' && !(req.user.role === 'student' && owns)) {
+        return res.status(403).json({ success: false, message: 'Access denied' });
+      }
+
+      const courseId = enrollment.course;
+      await enrollment.deleteOne();
+
+      const course = await Course.findById(courseId);
+      if (course) {
+        await course.updateEnrollmentCount();
+      }
+
+      res.status(200).json({ success: true, message: 'Enrollment removed' });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
 
 module.exports = router;

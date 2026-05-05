@@ -1,7 +1,6 @@
 const express = require('express');
 const { body, query, param, validationResult } = require('express-validator');
 const Course = require('../models/Course');
-const User = require('../models/User');
 const Enrollment = require('../models/Enrollment');
 const {
   authenticate,
@@ -108,7 +107,7 @@ router.get(
       const { category, level, price, search, page = 1, limit = 10, sort = 'newest' } = req.query;
 
       // Build query
-      let query = { isPublished: true };
+      const query = { isPublished: true };
 
       // Apply filters
       if (category) {
@@ -130,7 +129,7 @@ router.get(
       }
 
       // Build sort object
-      let sortObj = {};
+      const sortObj = {};
       switch (sort) {
         case 'newest':
           sortObj.createdAt = -1;
@@ -188,6 +187,54 @@ router.get(
     }
   }
 );
+
+/**
+ * @swagger
+ * /api/v1/courses/categories:
+ *   get:
+ *     summary: Get course categories with counts
+ *     tags: [Courses]
+ *     responses:
+ *       200:
+ *         description: Categories retrieved successfully
+ */
+router.get('/categories', async (req, res, next) => {
+  try {
+    const categories = await Course.getCoursesByCategory();
+
+    res.status(200).json({
+      success: true,
+      data: categories
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * @swagger
+ * /api/v1/courses/stats:
+ *   get:
+ *     summary: Get course statistics
+ *     tags: [Courses]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Statistics retrieved successfully
+ */
+router.get('/stats', authenticate, authorize('admin'), async (req, res, next) => {
+  try {
+    const stats = await Course.getCourseStats();
+
+    res.status(200).json({
+      success: true,
+      data: stats
+    });
+  } catch (error) {
+    next(error);
+  }
+});
 
 /**
  * @swagger
@@ -635,53 +682,5 @@ router.patch(
     }
   }
 );
-
-/**
- * @swagger
- * /api/v1/courses/categories:
- *   get:
- *     summary: Get course categories with counts
- *     tags: [Courses]
- *     responses:
- *       200:
- *         description: Categories retrieved successfully
- */
-router.get('/categories', async (req, res, next) => {
-  try {
-    const categories = await Course.getCoursesByCategory();
-
-    res.status(200).json({
-      success: true,
-      data: categories
-    });
-  } catch (error) {
-    next(error);
-  }
-});
-
-/**
- * @swagger
- * /api/v1/courses/stats:
- *   get:
- *     summary: Get course statistics
- *     tags: [Courses]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Statistics retrieved successfully
- */
-router.get('/stats', authenticate, authorize('admin'), async (req, res, next) => {
-  try {
-    const stats = await Course.getCourseStats();
-
-    res.status(200).json({
-      success: true,
-      data: stats
-    });
-  } catch (error) {
-    next(error);
-  }
-});
 
 module.exports = router;
